@@ -17,7 +17,7 @@ class MainActivity : AppCompatActivity() {
 
         //val Rlayout:RelativeLayout = findViewById(R.id.map_view) as RelativeLayout
         var tMapView = TMapView(this)
-        tMapView.setSKTMapApiKey("l7xx6974090fe01b4f089324f17b6e5be7f3")
+        tMapView.setSKTMapApiKey("Tmap api Key Cord")
 
         map_view.addView(tMapView)  //레이아웃에 Tmap 추가
 
