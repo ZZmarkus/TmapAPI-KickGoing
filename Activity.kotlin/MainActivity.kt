@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         var intent = Intent(this, FindLoad::class.java)
-        findLoad.setOnClickListener {
+        findLoad.setOnClickListener {   //길찾기 버튼 클릭 시 
             startActivity(intent)
         }
     }
