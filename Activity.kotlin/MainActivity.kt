@@ -17,7 +17,7 @@ class MainActivity : AppCompatActivity() {
 
         //val Rlayout:RelativeLayout = findViewById(R.id.map_view) as RelativeLayout
         var tMapView = TMapView(this)
-        tMapView.setSKTMapApiKey("Tmap api Key Cord")
+        tMapView.setSKTMapApiKey("l7xx6974090fe01b4f089324f17b6e5be7f3")
 
         map_view.addView(tMapView)  //레이아웃에 Tmap 추가
 
@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         var intent = Intent(this, FindLoad::class.java)
-        findLoad.setOnClickListener {   //길찾기 버튼 클릭 시 
+        findLoad.setOnClickListener {
             startActivity(intent)
         }
     }
