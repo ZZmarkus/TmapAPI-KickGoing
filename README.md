@@ -72,6 +72,7 @@
     * 10. 사용자는 전동 킥보드를 대여하기 위해서 회원가입 및 로그인을 해야하며 운전면허 등록이 필요하다.
     * 11. 사용자는 이용하기 버튼을 누르면 전동 킥보드에 부착되어 있는 QR코드를 찍어 대여할 수 있다.
     
+    
 ## * TMapView 띄우기와 현재 위치를 받기 위한 준비
 ```kotlin
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -106,4 +107,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tMapView!!.setIconVisibility(true)
         tMapView!!.setCompassMode(true)
         tMapView!!.setSightVisible(true)
+```
+## * 위치 변경되면 발생하는 이벤트리스너
+```kotlin
+ private val mLocationListener: LocationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location?) {
+            if (location != null) {
+                myLongitude = location.longitude
+                myLatitude = location.latitude
+
+                tMapView!!.setLocationPoint(myLongitude, myLatitude)
+                tMapView!!.setCenterPoint(myLongitude, myLatitude)
+                tMapView!!.setTrackingMode(true)
+            }
+        }
+    } // end of Listener
+```
+
+## * 현재 위치를 받기 위한 gps 함수 사용
+```kotlin
+    // 2020-07-29 작성
+    // 현재위치를 위한 gps를 받아오는 함수
+    fun setGps() {
+        val lm =
+            this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ),
+                1
+            )
+        }
+        lm.requestLocationUpdates(
+            LocationManager.NETWORK_PROVIDER,  // 등록할 위치제공자(실내에선 NETWORK_PROVIDER 권장)
+            1000, 1f,  // 통지사이의 최소 변경거리 (m)
+            mLocationListener
+        )
+    }// end of setGps()
 ```
