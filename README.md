@@ -73,8 +73,7 @@
     * 11. 사용자는 이용하기 버튼을 누르면 전동 킥보드에 부착되어 있는 QR코드를 찍어 대여할 수 있다.
     
 ## * TMapView 띄우기와 현재 위치를 받기 위한 준비
-```
-kotlin
+```kotlin
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private var isLocation = true
