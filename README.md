@@ -155,3 +155,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         )
     }// end of setGps()
 ```
+## * gps버튼, 확대, 축소버튼에 대한 클릭 리스너
+```kotlin
+ myLocation.setOnClickListener {
+            if(isLocation){   //만약 gps버튼이 눌려있다면 트래킹모드와 나침반모드를 해제시킨다.
+                tMapView!!.setTrackingMode(false)
+                tMapView!!.setSightVisible(false)
+                tMapView!!.setCompassMode(false)
+                tMapView!!.invalidate()
+                isLocation = false
+                myLocation.setImageResource(R.drawable.ic_baseline_my_location_24_black)
+            }
+            else{
+                tMapView!!.setTrackingMode(true)
+                tMapView!!.setSightVisible(true)
+                tMapView!!.setCompassMode(true)
+                isLocation = true
+                myLocation.setImageResource(R.drawable.ic_baseline_my_location_24)
+            }
+        }
+
+        //zoomIn버튼 클릭시 지도 확대
+        zoomIn.setOnClickListener {
+            tMapView?.MapZoomIn()
+        }
+        //zoomOut버튼 클릭시 지도 축소
+        zoomOut.setOnClickListener {
+            tMapView?.MapZoomOut()
+        }
+```
