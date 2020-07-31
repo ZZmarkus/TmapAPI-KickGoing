@@ -71,3 +71,37 @@
     * 9. 사용자는 회원가입을 할 때 선택적으로 운전면허 등록을 할 수 있다.
     * 10. 사용자는 전동 킥보드를 대여하기 위해서 회원가입 및 로그인을 해야하며 운전면허 등록이 필요하다.
     * 11. 사용자는 이용하기 버튼을 누르면 전동 킥보드에 부착되어 있는 QR코드를 찍어 대여할 수 있다.
+    
+## * TMapView 띄우기와 현재 위치를 
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+
+    private var isLocation = true
+    private var actionBar = false
+    private var tMapView:TMapView? = null
+
+    private lateinit var appBarConfiguration: AppBarConfiguration
+
+    private var myLongitude: Double = 0.0 // 현재위치, 경도
+    private var myLatitude: Double = 0.0   // 현재위치, 위도
+    var data = HashMap<String, TMapMarkerItem>() // 킥고잉 마커명, 위치 저장 해시맵
+    var pDistance:makedDistanceEvent = makedDistanceEvent()
+    var n=0
+
+    private val GPS_ENABLE_REQUEST_CODE = 2001
+    private val PERMISSIONS_REQUEST_CODE = 100
+    var REQUIRED_PERMISSIONS =
+        arrayOf<String>(android.Manifest.permission.ACCESS_FINE_LOCATION)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        setSupportActionBar(toolbar)
+
+        //val Rlayout:RelativeLayout = findViewById(R.id.map_view) as RelativeLayout
+        tMapView = TMapView(this)
+        tMapView!!.setSKTMapApiKey("l7xx6974090fe01b4f089324f17b6e5be7f3")
+        map_view.addView(tMapView)  //레이아웃에 Tmap 추가
+        tMapView!!.setIconVisibility(true)
+        tMapView!!.setCompassMode(true)
+        tMapView!!.setSightVisible(true)
