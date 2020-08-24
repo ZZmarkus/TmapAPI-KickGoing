@@ -1,7 +1,11 @@
 # TmapAPI-KickGoing
 
 ## Tmap API를 사용한 길찾기 기능이 포함된 퍼스널 모빌리티 대여 어플
-#### - 프로젝트기간 : 2020.07.20 ~ 2020.08.14
+#### - 프로젝트기간 : 2020.07.06 ~ 2020.08.14
+#### - 주제 선정, 요구사항 분석, Product Backlog 작성기간 : 2020.07.06 ~ 2020.07.17
+#### - Sprint 0 : 2020.07.20 ~ 2020.08.02
+#### - Sprint 1 : 2020.08.03 ~ 2020.08.14
+#### - 최종 결과물 데모영상 : https://www.youtube.com/watch?v=ktHRSrwHqg4&lc=UgwkSMx3J8RLqMpuJth4AaABAg
 
 
 ## 요구사항 분석
@@ -277,4 +281,322 @@ override fun onNavigationItemSelected(item: MenuItem): Boolean {
     companion object{
         var auth: FirebaseAuth = FirebaseAuth.getInstance()
     }
+```
+
+# User Class
+## * 사용자 로그인상태 및 정보를 저장하는 클래스
+```kotlin
+import com.facebook.login.Login
+import com.google.firebase.auth.FirebaseAuth
+
+object User {
+    var Login:Boolean = false
+    var facebookLogin:Boolean = false
+    var UserName:String = "QuickGoing"
+    var UserEmail:String = "로그인해라"
+
+    fun setFBlogin(log:Boolean){
+        facebookLogin = log
+    }
+
+    fun setUserLog(log: Boolean){
+        Login = log
+    }
+    fun setName(name:String){
+        UserName = name
+    }
+    fun setEmail(email:String){
+        UserEmail = email
+    }
+
+
+    fun getName(): String {
+        return UserName
+    }
+    fun getEmail(): String {
+        return UserEmail
+    }
+    fun getUserLog(): Boolean{
+        return Login
+    }
+    fun getFBUserLog():Boolean{
+        return facebookLogin
+    }
+}
+```
+
+# RegisterEventActivity
+## * 초기 확인버튼은 클릭 불가능한 상태 -> 중복체크에서 요구조건이 만족되면 확인버튼 
+```kotiln
+       // 확인버튼 누를 시 동작
+        registID.setOnClickListener {
+            if(pass.text.toString() == ""){
+                Toast.makeText(applicationContext, "비밀번호를 입력해 주세요", Toast.LENGTH_SHORT).show()
+            }
+            else {
+                // 입력된 아이디, 패스워드, 면허 등록
+                val u_id: String = id.text.toString()
+                val u_pass: String = pass.text.toString()
+                val u_drive: String = drive.text.toString()
+                val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+                val myRef: DatabaseReference = database.getReference("user")
+                var data = HashMap<String, String>()
+                data.put("password", u_pass)
+                data.put("drive_pass", u_drive)
+                myRef.child(u_id).setValue(data)
+                finish()
+            }
+        }
+
+
+        // 중복 체크 버튼
+        check_Btn.setOnClickListener {
+            val u_id:String = id.text.toString()
+            val u_pass:String = pass.text.toString()
+            val u_drive:String = drive.text.toString()
+            val database:FirebaseDatabase = FirebaseDatabase.getInstance()
+            val myRef:DatabaseReference = database.getReference("user")
+
+            // DB에 이벤트 발생 시 동작하는 함수
+            myRef.addValueEventListener(object: ValueEventListener{
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    for(list in snapshot.children){
+                        if(u_id.equals(list.key)){ // 사용자 입력 아이디가 하나라도 중복될 경우
+                            checking_id = true // 중복이라는 표시
+                        }
+                    }
+                    /*
+                    if(checking_id == true){
+                        Toast.makeText(applicationContext, "아이디 중복", Toast.LENGTH_SHORT).show()
+                        checking_id = false
+                    }
+                    else{ // false일 떄
+                        Toast.makeText(applicationContext, "사용 가능 아이디", Toast.LENGTH_SHORT).show()
+                        registID.isClickable = true
+                    }
+                     */
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+
+                }
+            })
+            if(checking_id == true){
+                Toast.makeText(applicationContext, "아이디 중복", Toast.LENGTH_SHORT).show()
+            }
+            else{ // false일 떄
+                Toast.makeText(applicationContext, "사용 가능 아이디", Toast.LENGTH_SHORT).show()
+                registID.isClickable = true
+            }
+        }
+```
+
+# Activity_login
+## * FireBase에 사용자 등록(초기에 1번만 실행)
+```kotlin
+private fun registerFB(){
+        var auth2 = Firebase.auth
+        auth2.signInWithEmailAndPassword("Email", "password")
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    Log.d("TAG", "signInWithEmail:success")
+                    val user = auth2.currentUser
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w("TAG", "signInWithEmail:failure", task.exception)
+                    Toast.makeText(baseContext, "Authentication failed.",
+                        Toast.LENGTH_SHORT).show()
+                }
+            }
+    }
+```
+
+## * RegisterEventActivity에서 회원가입을 통해 Firebase에 데이터를 저장하고 이 데이터를 바탕으로 로그인 처리
+```kotlin
+btnLogin.setOnClickListener {
+            val str_id: String = etEmail.text.toString()
+            val str_pass: String = etPassword.text.toString()
+
+            // firebase realtime DB에 접근하는 부분
+            val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+            val myRef: DatabaseReference = database.getReference("user")
+
+            // DB에 접근해서 로그인한 아이디와 비밀번호 일치성 검사, 운전면허 여부 검사
+            myRef.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    for (list in snapshot.children) {
+                        if (str_id.equals(list.key)) { // 사용자 입력 아이디가 하나라도 중복될 경우
+                            checking_id = true // 중복이라는 표시
+                        }
+                    }
+                    if (checking_id == true) { // 존재하는 아이디
+                        // 해당 아이디의 비밀번호를 DB에서 가져온다.
+                        var temp: String = snapshot.child(str_id).child("password").getValue() as String
+                        // 입력한 비밀번호와 DB에서 가져온 비밀번호 일치 시
+                        if (str_pass.equals(temp)) { // 로그인 성공
+                            Toast.makeText(applicationContext, "${str_id} 님이 로그인하셨습니다.", Toast.LENGTH_SHORT).show()
+
+                           // User.setName(str_id)
+                            User.setName(str_id.toString())
+                            User.setEmail(auth.currentUser!!.email.toString())
+                            User.setUserLog(true)
+                            Log.d("showInformed", "firbname: "+ User.getName())
+                            Log.d("showInformed", "firbemail: " + auth.currentUser!!.email.toString())
+
+                            finish()
+                        }
+                        // 아이디는 일치, 비밀번호가 불일치할 때
+                        else{
+                            Toast.makeText(applicationContext, "비밀번호 불일치", Toast.LENGTH_SHORT).show()
+                        }
+                        checking_id = false // 재로그인을 위해 로그인 offset을 처음 상태로 돌려 놓는다.
+                    } else {
+                        // 존재하지 않는 아이디
+                        Toast.makeText(applicationContext, "존재하지 않는 아이디임, 재로그인", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    // 데이터에 대한 접근이 취소되었을 때 동작하는 함수
+                }
+            })
+            /* 2020-07-30(목) 이형석 수정
+            if (str_pass.equals(user_password)) {
+                Toast.makeText(applicationContext, "로그인 성공", Toast.LENGTH_SHORT).show()
+                tMapView!!.invalidate() // 2020-07-30(목) 작성
+            }
+             */
+        }
+```
+
+## * Facebook 로그인 버튼 클릭 시
+```kotlin
+private fun facebookLogin(){
+        LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile", "email"))
+        LoginManager.getInstance().registerCallback(callbackManager, object :
+            FacebookCallback<LoginResult> {
+
+            override fun onSuccess(result: LoginResult?) {
+                //페이스북 로그인 성공
+                handleFacebookAccessToken(result?.accessToken)
+                Toast.makeText(applicationContext,"페이스북 로그인 성공",Toast.LENGTH_SHORT).show()
+                var user:FirebaseUser? = auth.currentUser
+                User.setName(user!!.displayName.toString())
+                User.setEmail("FaceBook")
+                User.setUserLog(true)
+                User.setFBlogin(true)
+
+                Log.d("showInformed", "name: "+ user.displayName.toString())
+                Log.d("showInformed", "email" + auth.currentUser!!.email.toString())
+                finish()
+            }
+            override fun onCancel() {
+                //페이스북 로그인 취소
+                //updateUI(null)
+            }
+
+            override fun onError(error: FacebookException?) {
+                //페이스북 로그인 실패
+                //updateUI(null)
+            }
+        })
+    }
+
+
+    private fun handleFacebookAccessToken(token: AccessToken?) {
+        Log.d("MainActivity", "handleFacebookAccessToken:$token")
+        if (token != null) {
+            val credential = FacebookAuthProvider.getCredential(token.token)
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        Log.d("MainActivity", "signInWithCredential:success")
+                        //updateUI(user)
+                    } else {
+                        Log.w("MainActivity", "signInWithCredential:failure", task.exception)
+                        Toast.makeText(this,"Authentication failed",Toast.LENGTH_SHORT).show()
+                        //updateUI(null)
+                    }
+                }
+        }
+    }
+```
+
+## * 앱이 처음실행되면 Activity_login이 실행되고 만약 현재 로그인 된 상태라면 현재 로그인 된 사용자 정보를 User클래스에 데이터 저장
+```kotlin
+ override fun onStart() {
+        super.onStart()
+        val currentUser = auth.currentUser
+        // Check if user is signed in (non-null) and update UI accordingly.
+        Log.d(TAG, "firebaseAuthWithGoogle:" + currentUser?.displayName)
+        if(currentUser !=null){
+            Toast.makeText(this,"로그인 상태입니다.",Toast.LENGTH_SHORT).show()
+            Log.d("@@@@", currentUser!!.email.toString())
+
+            User.setName(currentUser.displayName.toString())
+            User.setEmail(currentUser.email.toString())
+            User.setUserLog(true)
+            finish()
+        }
+    }
+```
+
+## * Google Login버튼 클릭 시 
+```kotlin
+   private fun signIn() {
+        val signInIntent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, RC_SIGN_IN)
+    }
+```
+
+## * 구글 로그인이 되는 과정
+```kotlin
+override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                // Google Sign In was successful, authenticate with Firebase
+                val account = task.getResult(ApiException::class.java)!!
+                Log.d(TAG, "firebaseAuthWithGoogle:" + account.id)
+                firebaseAuthWithGoogle(account.idToken!!)
+
+            } catch (e: ApiException) {
+                // Google Sign In failed, update UI appropriately
+                Log.w(TAG, "Google sign in failed", e)
+            }
+        }
+        else{
+            callbackManager?.onActivityResult(requestCode, resultCode, data)
+        }
+    }
+
+    // [START auth_with_google]
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        // [START_EXCLUDE silent]
+        // [END_EXCLUDE]
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    Toast.makeText(applicationContext,"구글로그인 성공",Toast.LENGTH_SHORT).show()
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d(TAG, "signInWithCredential:success")
+                    var user:FirebaseUser? = auth.currentUser
+                    User.setName(user!!.displayName.toString())
+                    User.setEmail(user!!.email.toString())
+                    User.setUserLog(true)
+
+                    Log.d("showInformed", "name: "+ auth.currentUser!!.displayName.toString())
+                    Log.d("showInformed", "email" + auth.currentUser!!.email.toString())
+                    finish()
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w(TAG, "signInWithCredential:failure", task.exception)
+                }
+            }
+    }
+    // [END auth_with_google]
 ```
