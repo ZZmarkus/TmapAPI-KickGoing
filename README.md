@@ -283,6 +283,28 @@ override fun onNavigationItemSelected(item: MenuItem): Boolean {
     }
 ```
 
+## * 이용하기 버튼 눌렀을 때 로그인 상태라면 QR코드찍는 화면, 로그인 상태가 아니라면 Activity_login액티비티로 넘어감
+```kotlin
+usingButton.setOnClickListener {
+            Log.d("login", User.getUserLog().toString())
+            if(User.getUserLog() == false){
+                // login intent
+
+                builder2.setIcon(R.drawable.kickgoing)
+                builder2.setTitle("QucikGoing")
+                builder2.show()
+            }
+            else if(User.getUserLog() == true){
+                // qr
+                var intentIntegrator:IntentIntegrator = IntentIntegrator(this)
+                intentIntegrator.initiateScan()
+                QR_on = true
+            }
+
+
+        } // end of usingButton Listener
+```
+
 # User Class
 ## * 사용자 로그인상태 및 정보를 저장하는 클래스
 ```kotlin
@@ -600,3 +622,11 @@ override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) 
     }
     // [END auth_with_google]
 ```
+
+# 개선해야 할 점
+## - 로그인 후 QR코드 인식을 하여 실제로 전동 킥보드를 대여할 수 있는 기능을 구현하지 못함 (전동킥보드가 없었고 QR코드를 생성하지 못함)
+## - 로그인 후 getCurrentUser를 이용하여 Firebase에서 현재 로그인 된 사용자 정보를 불러오지 못함(구글로그인만 제대로 동작함)
+## - 현재위치가 갱신되는 주기가 너무 김
+## - 네비게이션 레이아웃의 로그인/회원가입 버튼의 동적 변경이 안됨
+## - 임의로 설정한 전동 킥보드의 마커가 사라지는 현상
+## - 자동차, 지하철, 도보, 자전거의 길찾기 기능은 존재하지만 전동 킥보드의 길찾기 기능이 없다는 점 등
