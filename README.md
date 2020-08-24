@@ -348,9 +348,9 @@ object User {
 ```
 
 # RegisterEventActivity
-## * 초기 확인버튼은 클릭 불가능한 상태 -> 중복체크에서 요구조건이 만족되면 확인버튼 
-```kotiln
-       // 확인버튼 누를 시 동작
+## * 초기 확인버튼은 클릭 불가능한 상태 -> 중복체크에서 요구조건이 만족되면 확인버튼 클릭 가능
+```kotlin
+// 확인버튼 누를 시 동작
         registID.setOnClickListener {
             if(pass.text.toString() == ""){
                 Toast.makeText(applicationContext, "비밀번호를 입력해 주세요", Toast.LENGTH_SHORT).show()
