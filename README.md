@@ -3,6 +3,7 @@
 ## Tmap API를 사용한 길찾기 기능이 포함된 퍼스널 모빌리티 대여 어플
 #### - 프로젝트기간 : 2020.07.20 ~ 2020.08.14
 
+
 ## 요구사항 분석
 
 #### - 성능적 요구사항
@@ -75,45 +76,53 @@
     * 10. 사용자는 전동 킥보드를 대여하기 위해서 회원가입 및 로그인을 해야하며 운전면허 등록이 필요하다.
     * 11. 사용자는 이용하기 버튼을 누르면 전동 킥보드에 부착되어 있는 QR코드를 찍어 대여할 수 있다.
     
-    
+
+# MainActivity
 ## * TMapView 띄우기와 현재 위치를 받기 위한 준비
 ```kotlin
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
+    lateinit var lm : LocationManager
     private var isLocation = true
     private var actionBar = false
-    private var tMapView:TMapView? = null
+    private lateinit var tMapView:TMapView
+    private var QR_on = false
 
-    private lateinit var appBarConfiguration: AppBarConfiguration
+    //var currentUser: FirebaseAuth = Activity_login.auth
 
     private var myLongitude: Double = 0.0 // 현재위치, 경도
     private var myLatitude: Double = 0.0   // 현재위치, 위도
-    var data = HashMap<String, TMapMarkerItem>() // 킥고잉 마커명, 위치 저장 해시맵
-    var pDistance:makedDistanceEvent = makedDistanceEvent()
+    var data = ArrayList<TMapMarkerItem>() // 킥고잉 마커명, 위치 저장 해시맵
     var n=0
 
     private val GPS_ENABLE_REQUEST_CODE = 2001
     private val PERMISSIONS_REQUEST_CODE = 100
-    var REQUIRED_PERMISSIONS =
-        arrayOf<String>(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    var REQUIRED_PERMISSIONS = arrayOf<String>(android.Manifest.permission.ACCESS_FINE_LOCATION)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_baseline_format_list_bulleted_24)
+
+        val intent: Intent = Intent(this, Activity_login::class.java)
+        startActivity(intent)
+
+
 
         //val Rlayout:RelativeLayout = findViewById(R.id.map_view) as RelativeLayout
         tMapView = TMapView(this)
         tMapView!!.setSKTMapApiKey("API KEY")
-        map_view.addView(tMapView)  //레이아웃에 Tmap 추가
+//        map_view.addView(tMapView)  //레이아웃에 Tmap 추가
         tMapView!!.setIconVisibility(true)
         tMapView!!.setCompassMode(true)
         tMapView!!.setSightVisible(true)
 ```
 ## * 위치 변경되면 발생하는 이벤트리스너
 ```kotlin
- private val mLocationListener: LocationListener = object : LocationListener {
+private val mLocationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location?) {
             if (location != null) {
                 myLongitude = location.longitude
@@ -122,46 +131,54 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 tMapView!!.setLocationPoint(myLongitude, myLatitude)
                 tMapView!!.setCenterPoint(myLongitude, myLatitude)
                 tMapView!!.setTrackingMode(true)
+
+                Thread(Runnable { // runOnUiThread를 추가하고 그 안에 UI작업을 한다.
+                    runOnUiThread {
+                        for(i in data){ // data에는 DB에서 받아온 킥고잉 마커들이 담겨있음
+                            var lat = i.tMapPoint.latitude
+                            var lon = i.tMapPoint.longitude
+                            var model = i.calloutTitle
+
+                            var p:TMapPoint = TMapPoint(lat, lon) // 마커 포인트
+
+                            // 2020-08-11(화) 작성
+                            // 현재 위치 변경 시 킥고잉과의 거리를 서브 타이틀에 표시
+                            var myLocation = TMapPoint(location!!.latitude, location.longitude) // 현재위치를 가진 변수
+                            var tpolyLine = TMapPolyLine()
+                            tpolyLine.addLinePoint(p) // 마커 포인트 추가
+                            tpolyLine.addLinePoint(myLocation) // 현재위치 포인트 추가
+                            var dist = tpolyLine.distance.toInt()
+                            i.calloutSubTitle = "${dist}m"
+                            i.autoCalloutVisible = true
+                            tMapView!!.invalidate()
+                        }
+                    }
+                }).start()
+
             }
-        }
-    } // end of Listener
+        } // end of mLocationListener
 ```
 
 ## * 현재 위치를 받기 위한 gps 함수 사용
 ```kotlin
-    // 2020-07-29 작성
     // 현재위치를 위한 gps를 받아오는 함수
     fun setGps() {
-        val lm =
-            this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ),
-                1
-            )
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION), 1)
         }
         lm.requestLocationUpdates(
             LocationManager.NETWORK_PROVIDER,  // 등록할 위치제공자(실내에선 NETWORK_PROVIDER 권장)
-            1000, 1f,  // 통지사이의 최소 변경거리 (m)
+            500, 1f,  // 통지사이의 최소 변경거리 (m)
             mLocationListener
         )
     }// end of setGps()
 ```
 ## * gps버튼, 확대, 축소버튼에 대한 클릭 리스너
 ```kotlin
- myLocation.setOnClickListener {
-            if(isLocation){   //만약 gps버튼이 눌려있다면 트래킹모드와 나침반모드를 해제시킨다.
+myLocation.setOnClickListener {
+            if(isLocation){
                 tMapView!!.setTrackingMode(false)
                 tMapView!!.setSightVisible(false)
                 tMapView!!.setCompassMode(false)
@@ -188,22 +205,76 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 ```
 
-##FireBase의 사용자 등록
+## * 앱이 실행될 때 User클래스의 정보를 가져와 로그인 상태를 체크한다.
 ```kotlin
-    private fun registerFB(){
-        auth = Firebase.auth
-        auth.signInWithEmailAndPassword("email", "password")
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in user's information
-                    Log.d("TAG", "signInWithEmail:success")
-                    val user = auth.currentUser
-                } else {
-                    // If sign in fails, display a message to the user.
-                    Log.w("TAG", "signInWithEmail:failure", task.exception)
-                    Toast.makeText(baseContext, "Authentication failed.",
-                        Toast.LENGTH_SHORT).show()
+ override fun onStart() {
+        super.onStart()
+        drawer_layout.closeDrawer(GravityCompat.START)
+
+        var fb: FirebaseUser? = auth?.currentUser
+        if (fb != null) {
+            if (User.getFBUserLog() == true) {
+                User.setName(fb.displayName.toString())
+                User.setEmail("FaceBook")
+                User.setUserLog(true)
+            } else {
+                User.setName(fb.displayName.toString())
+                User.setEmail(fb.email.toString())
+                User.setUserLog(true)
+            }
+        }
+        Log.d("start", "email : " + User.getEmail())
+        Log.d("start", "name : " + User.getName())
+        Log.d("start", "login : " + User.getUserLog())
+    }
+```
+
+## * 툴바의 메뉴를 클릭할 때 User클래스의 정보를 바탕으로 현재 로그인한 유저정보로 세팅해준다.
+```kotlin
+   override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item?.itemId){
+            android.R.id.home -> {
+                drawer_layout.openDrawer(GravityCompat.START)
+                name.text = User.getName()
+                email.text = User.getEmail()
+                Log.d("showInformed", "mainEmail: " + User.getName())
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+```
+
+## * 툴바의 메뉴를 눌렀을 때 나오는 메뉴들에 대한 행동
+```kotlin
+override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            R.id.account-> {
+                if(User.getUserLog()==true){
+                    auth.signOut()
+                }
+                else {
+                    val intent: Intent = Intent(this, Activity_login::class.java)
+                    startActivity(intent)
                 }
             }
+            R.id.how-> Toast.makeText(this,"item2 clicked",Toast.LENGTH_SHORT).show()
+            R.id.setting-> Toast.makeText(this,"item3 clicked",Toast.LENGTH_SHORT).show()
+            R.id.logout->{
+                drawer_layout.closeDrawer(GravityCompat.START)
+                Firebase.auth.signOut()
+                User.setUserLog(false)
+                User.setName("QuickGoing")
+                User.setFBlogin(false)
+                User.setEmail("do not login")
+            }
+        }
+        return false
+    }
+```
+
+## * Static 변수 선언
+```kotlin
+    companion object{
+        var auth: FirebaseAuth = FirebaseAuth.getInstance()
     }
 ```
